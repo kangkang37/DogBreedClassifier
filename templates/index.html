@@ -1,0 +1,211 @@
+
+<!-- # 最终版
+# 每个图片下方输出预测结果
+# 最多上传10张图片 -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Upload Image</title>
+    <style>
+      /* Add styles for image and prediction result container */
+      .imageAndResultContainer {
+        width: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* Other styles omitted for brevity */
+
+      #dropContainer {
+        border: 2px dashed #ccc;
+        width: 200px;
+        height: 200px;
+        margin: 20px auto;
+        text-align: center;
+        line-height: normal; 
+        cursor: pointer;
+        overflow: hidden;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+      }
+
+
+      /* #dropContainer span {
+        display: inline-block;
+        vertical-align: middle;
+        max-width: 100%;
+        max-height: 100%;
+        white-space: normal;
+        word-wrap: break-word;
+      } */
+
+      #dropText {
+        vertical-align: middle;
+        max-width: 100%;
+        max-height: 100%;
+        white-space: normal;
+        word-wrap: break-word;
+      }
+
+      #imageContainer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .previewImage {
+        max-width: 200px;
+        max-height: 200px;
+      }
+      
+      #title {
+        text-align: center;
+        font-size: 24px;
+        margin-top: 20px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <!-- Omitted for brevity -->
+    <h1 id="title">Dog Breed Prediction</h1>
+    <h2>Upload Image</h2>
+    
+    <div id="dropContainer" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)">
+      <div id="dropText">Drag and drop images here (maximum 10 images)</div>
+    </div>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="image" id="imageInput" multiple style="display: none;">
+    </form>
+
+
+    <div id="imageContainer"></div>
+
+
+    <div id="resultDiv" style="display: none;">
+      <h2>Prediction Result</h2>
+      <ul id="predictedClasses"></ul>
+    </div>
+
+    <button id="predictButton" onclick="predictImages()" style="display: none;">Predict</button>
+
+
+    <script>
+      function predictImages() {
+        images.forEach(function(image, index) {
+          var formData = new FormData();
+          formData.append("image", image);
+
+          fetch('/predict', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            var predictedClass = data.predicted_class;
+            
+            // Create a paragraph to display the prediction result
+            var predictionResult = document.createElement("p");
+            predictionResult.textContent = "Prediction: " + predictedClass;
+
+            // Append the prediction result to the corresponding image and result container
+            var imageAndResultContainer = document.getElementById("imageAndResultContainer" + index);
+            imageAndResultContainer.appendChild(predictionResult);
+          })
+          .catch(error => console.error('Error:', error));
+        });
+      }
+
+      function previewImages(event) {
+        // Clear the old images and prediction results
+        document.getElementById("imageContainer").innerHTML = "";
+        images = [];
+
+        // File reader
+        var reader;
+        for (var i = 0; i < event.target.files.length && i < 10; i++) {
+          reader = new FileReader();
+          reader.onload = (function(file) {
+            return function(event) {
+              // Create a container for the image and prediction result
+              var imageAndResultContainer = document.createElement("div");
+              imageAndResultContainer.classList.add("imageAndResultContainer");
+              imageAndResultContainer.id = "imageAndResultContainer" + images.length; // Assign a unique id
+
+              // Create an image element
+              var imagePreview = document.createElement("img");
+              imagePreview.src = event.target.result;
+              imagePreview.classList.add("previewImage");
+
+              // Append the image to the container
+              imageAndResultContainer.appendChild(imagePreview);
+
+              // Append the container to the image container
+              document.getElementById("imageContainer").appendChild(imageAndResultContainer);
+
+              // Add the file to the images array
+              images.push(file);
+
+              if (images.length > 0) {
+                document.getElementById("predictButton").style.display = "block";
+              }
+            };
+          })(event.target.files[i]);
+          reader.readAsDataURL(event.target.files[i]);
+        }
+      }
+
+      // Other functions omitted for brevity
+
+      function dragOverHandler(event) {
+        event.preventDefault();
+      }
+
+      function dropHandler(event) {
+        event.preventDefault();
+        var files = event.dataTransfer.files;
+
+        // 清空原来的图片和预测结果
+        document.getElementById("imageContainer").innerHTML = "";
+        document.getElementById("predictedClasses").innerHTML = "";
+        images = [];
+
+        var reader;
+        for (var i = 0; i < files.length && i < 10; i++) {
+          reader = new FileReader();
+          reader.onload = (function(file) {
+            return function(event) {
+              var imagePreview = document.createElement("img");
+              imagePreview.src = event.target.result;
+              imagePreview.classList.add("previewImage");
+              document.getElementById("imageContainer").appendChild(imagePreview);
+              images.push(file);
+              if (images.length > 0) {
+                document.getElementById("predictButton").style.display = "block";
+              }
+            };
+          })(files[i]);
+          reader.readAsDataURL(files[i]);
+        }
+        
+        // 清空预测结果
+        document.getElementById("resultDiv").style.display = "none";
+      }
+
+      document.getElementById("dropContainer").addEventListener("click", function() {
+        document.getElementById("imageInput").click();
+      });
+
+      document.getElementById("imageInput").addEventListener("change", function(event) {
+        previewImages(event);
+      });
+
+    </script>
+  </body>
+</html>
